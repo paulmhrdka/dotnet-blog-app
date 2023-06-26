@@ -16,8 +16,11 @@ import { HttpClient, HttpHeaders, HttpResponse, HttpResponseBase } from '@angula
 export const API_BASE_URL = new InjectionToken<string>('API_BASE_URL');
 
 export interface IBlogItemsClient {
-    getBlogItemsWithPagination(pageNumber: number | undefined, limit: number | undefined): Observable<PaginatedListOfBlogItemBriefDto>;
+    getAll(): Observable<BlogsVm>;
     create(command: CreateBlogItemCommand): Observable<number>;
+    getDetail(id: number): Observable<BlogItemDto>;
+    update(id: number, command: UpdateBlogItemCommand): Observable<FileResponse>;
+    delete(id: number): Observable<FileResponse>;
 }
 
 @Injectable({
@@ -33,16 +36,8 @@ export class BlogItemsClient implements IBlogItemsClient {
         this.baseUrl = baseUrl !== undefined && baseUrl !== null ? baseUrl : "";
     }
 
-    getBlogItemsWithPagination(pageNumber: number | undefined, limit: number | undefined): Observable<PaginatedListOfBlogItemBriefDto> {
-        let url_ = this.baseUrl + "/api/BlogItems?";
-        if (pageNumber === null)
-            throw new Error("The parameter 'pageNumber' cannot be null.");
-        else if (pageNumber !== undefined)
-            url_ += "PageNumber=" + encodeURIComponent("" + pageNumber) + "&";
-        if (limit === null)
-            throw new Error("The parameter 'limit' cannot be null.");
-        else if (limit !== undefined)
-            url_ += "Limit=" + encodeURIComponent("" + limit) + "&";
+    getAll(): Observable<BlogsVm> {
+        let url_ = this.baseUrl + "/api/BlogItems";
         url_ = url_.replace(/[?&]$/, "");
 
         let options_ : any = {
@@ -54,20 +49,20 @@ export class BlogItemsClient implements IBlogItemsClient {
         };
 
         return this.http.request("get", url_, options_).pipe(_observableMergeMap((response_ : any) => {
-            return this.processGetBlogItemsWithPagination(response_);
+            return this.processGetAll(response_);
         })).pipe(_observableCatch((response_: any) => {
             if (response_ instanceof HttpResponseBase) {
                 try {
-                    return this.processGetBlogItemsWithPagination(response_ as any);
+                    return this.processGetAll(response_ as any);
                 } catch (e) {
-                    return _observableThrow(e) as any as Observable<PaginatedListOfBlogItemBriefDto>;
+                    return _observableThrow(e) as any as Observable<BlogsVm>;
                 }
             } else
-                return _observableThrow(response_) as any as Observable<PaginatedListOfBlogItemBriefDto>;
+                return _observableThrow(response_) as any as Observable<BlogsVm>;
         }));
     }
 
-    protected processGetBlogItemsWithPagination(response: HttpResponseBase): Observable<PaginatedListOfBlogItemBriefDto> {
+    protected processGetAll(response: HttpResponseBase): Observable<BlogsVm> {
         const status = response.status;
         const responseBlob =
             response instanceof HttpResponse ? response.body :
@@ -78,7 +73,7 @@ export class BlogItemsClient implements IBlogItemsClient {
             return blobToText(responseBlob).pipe(_observableMergeMap((_responseText: string) => {
             let result200: any = null;
             let resultData200 = _responseText === "" ? null : JSON.parse(_responseText, this.jsonParseReviver);
-            result200 = PaginatedListOfBlogItemBriefDto.fromJS(resultData200);
+            result200 = BlogsVm.fromJS(resultData200);
             return _observableOf(result200);
             }));
         } else if (status !== 200 && status !== 204) {
@@ -134,6 +129,159 @@ export class BlogItemsClient implements IBlogItemsClient {
     
             return _observableOf(result200);
             }));
+        } else if (status !== 200 && status !== 204) {
+            return blobToText(responseBlob).pipe(_observableMergeMap((_responseText: string) => {
+            return throwException("An unexpected server error occurred.", status, _responseText, _headers);
+            }));
+        }
+        return _observableOf(null as any);
+    }
+
+    getDetail(id: number): Observable<BlogItemDto> {
+        let url_ = this.baseUrl + "/api/BlogItems/{id}";
+        if (id === undefined || id === null)
+            throw new Error("The parameter 'id' must be defined.");
+        url_ = url_.replace("{id}", encodeURIComponent("" + id));
+        url_ = url_.replace(/[?&]$/, "");
+
+        let options_ : any = {
+            observe: "response",
+            responseType: "blob",
+            headers: new HttpHeaders({
+                "Accept": "application/json"
+            })
+        };
+
+        return this.http.request("get", url_, options_).pipe(_observableMergeMap((response_ : any) => {
+            return this.processGetDetail(response_);
+        })).pipe(_observableCatch((response_: any) => {
+            if (response_ instanceof HttpResponseBase) {
+                try {
+                    return this.processGetDetail(response_ as any);
+                } catch (e) {
+                    return _observableThrow(e) as any as Observable<BlogItemDto>;
+                }
+            } else
+                return _observableThrow(response_) as any as Observable<BlogItemDto>;
+        }));
+    }
+
+    protected processGetDetail(response: HttpResponseBase): Observable<BlogItemDto> {
+        const status = response.status;
+        const responseBlob =
+            response instanceof HttpResponse ? response.body :
+            (response as any).error instanceof Blob ? (response as any).error : undefined;
+
+        let _headers: any = {}; if (response.headers) { for (let key of response.headers.keys()) { _headers[key] = response.headers.get(key); }}
+        if (status === 200) {
+            return blobToText(responseBlob).pipe(_observableMergeMap((_responseText: string) => {
+            let result200: any = null;
+            let resultData200 = _responseText === "" ? null : JSON.parse(_responseText, this.jsonParseReviver);
+            result200 = BlogItemDto.fromJS(resultData200);
+            return _observableOf(result200);
+            }));
+        } else if (status !== 200 && status !== 204) {
+            return blobToText(responseBlob).pipe(_observableMergeMap((_responseText: string) => {
+            return throwException("An unexpected server error occurred.", status, _responseText, _headers);
+            }));
+        }
+        return _observableOf(null as any);
+    }
+
+    update(id: number, command: UpdateBlogItemCommand): Observable<FileResponse> {
+        let url_ = this.baseUrl + "/api/BlogItems/{id}";
+        if (id === undefined || id === null)
+            throw new Error("The parameter 'id' must be defined.");
+        url_ = url_.replace("{id}", encodeURIComponent("" + id));
+        url_ = url_.replace(/[?&]$/, "");
+
+        const content_ = JSON.stringify(command);
+
+        let options_ : any = {
+            body: content_,
+            observe: "response",
+            responseType: "blob",
+            headers: new HttpHeaders({
+                "Content-Type": "application/json",
+                "Accept": "application/octet-stream"
+            })
+        };
+
+        return this.http.request("put", url_, options_).pipe(_observableMergeMap((response_ : any) => {
+            return this.processUpdate(response_);
+        })).pipe(_observableCatch((response_: any) => {
+            if (response_ instanceof HttpResponseBase) {
+                try {
+                    return this.processUpdate(response_ as any);
+                } catch (e) {
+                    return _observableThrow(e) as any as Observable<FileResponse>;
+                }
+            } else
+                return _observableThrow(response_) as any as Observable<FileResponse>;
+        }));
+    }
+
+    protected processUpdate(response: HttpResponseBase): Observable<FileResponse> {
+        const status = response.status;
+        const responseBlob =
+            response instanceof HttpResponse ? response.body :
+            (response as any).error instanceof Blob ? (response as any).error : undefined;
+
+        let _headers: any = {}; if (response.headers) { for (let key of response.headers.keys()) { _headers[key] = response.headers.get(key); }}
+        if (status === 200 || status === 206) {
+            const contentDisposition = response.headers ? response.headers.get("content-disposition") : undefined;
+            const fileNameMatch = contentDisposition ? /filename="?([^"]*?)"?(;|$)/g.exec(contentDisposition) : undefined;
+            const fileName = fileNameMatch && fileNameMatch.length > 1 ? fileNameMatch[1] : undefined;
+            return _observableOf({ fileName: fileName, data: responseBlob as any, status: status, headers: _headers });
+        } else if (status !== 200 && status !== 204) {
+            return blobToText(responseBlob).pipe(_observableMergeMap((_responseText: string) => {
+            return throwException("An unexpected server error occurred.", status, _responseText, _headers);
+            }));
+        }
+        return _observableOf(null as any);
+    }
+
+    delete(id: number): Observable<FileResponse> {
+        let url_ = this.baseUrl + "/api/BlogItems/{id}";
+        if (id === undefined || id === null)
+            throw new Error("The parameter 'id' must be defined.");
+        url_ = url_.replace("{id}", encodeURIComponent("" + id));
+        url_ = url_.replace(/[?&]$/, "");
+
+        let options_ : any = {
+            observe: "response",
+            responseType: "blob",
+            headers: new HttpHeaders({
+                "Accept": "application/octet-stream"
+            })
+        };
+
+        return this.http.request("delete", url_, options_).pipe(_observableMergeMap((response_ : any) => {
+            return this.processDelete(response_);
+        })).pipe(_observableCatch((response_: any) => {
+            if (response_ instanceof HttpResponseBase) {
+                try {
+                    return this.processDelete(response_ as any);
+                } catch (e) {
+                    return _observableThrow(e) as any as Observable<FileResponse>;
+                }
+            } else
+                return _observableThrow(response_) as any as Observable<FileResponse>;
+        }));
+    }
+
+    protected processDelete(response: HttpResponseBase): Observable<FileResponse> {
+        const status = response.status;
+        const responseBlob =
+            response instanceof HttpResponse ? response.body :
+            (response as any).error instanceof Blob ? (response as any).error : undefined;
+
+        let _headers: any = {}; if (response.headers) { for (let key of response.headers.keys()) { _headers[key] = response.headers.get(key); }}
+        if (status === 200 || status === 206) {
+            const contentDisposition = response.headers ? response.headers.get("content-disposition") : undefined;
+            const fileNameMatch = contentDisposition ? /filename="?([^"]*?)"?(;|$)/g.exec(contentDisposition) : undefined;
+            const fileName = fileNameMatch && fileNameMatch.length > 1 ? fileNameMatch[1] : undefined;
+            return _observableOf({ fileName: fileName, data: responseBlob as any, status: status, headers: _headers });
         } else if (status !== 200 && status !== 204) {
             return blobToText(responseBlob).pipe(_observableMergeMap((_responseText: string) => {
             return throwException("An unexpected server error occurred.", status, _responseText, _headers);
@@ -781,15 +929,10 @@ export class WeatherForecastClient implements IWeatherForecastClient {
     }
 }
 
-export class PaginatedListOfBlogItemBriefDto implements IPaginatedListOfBlogItemBriefDto {
-    items?: BlogItemBriefDto[];
-    pageNumber?: number;
-    totalPages?: number;
-    totalCount?: number;
-    hasPreviousPage?: boolean;
-    hasNextPage?: boolean;
+export class BlogsVm implements IBlogsVm {
+    items?: BlogItemDto[];
 
-    constructor(data?: IPaginatedListOfBlogItemBriefDto) {
+    constructor(data?: IBlogsVm) {
         if (data) {
             for (var property in data) {
                 if (data.hasOwnProperty(property))
@@ -803,19 +946,14 @@ export class PaginatedListOfBlogItemBriefDto implements IPaginatedListOfBlogItem
             if (Array.isArray(_data["items"])) {
                 this.items = [] as any;
                 for (let item of _data["items"])
-                    this.items!.push(BlogItemBriefDto.fromJS(item));
+                    this.items!.push(BlogItemDto.fromJS(item));
             }
-            this.pageNumber = _data["pageNumber"];
-            this.totalPages = _data["totalPages"];
-            this.totalCount = _data["totalCount"];
-            this.hasPreviousPage = _data["hasPreviousPage"];
-            this.hasNextPage = _data["hasNextPage"];
         }
     }
 
-    static fromJS(data: any): PaginatedListOfBlogItemBriefDto {
+    static fromJS(data: any): BlogsVm {
         data = typeof data === 'object' ? data : {};
-        let result = new PaginatedListOfBlogItemBriefDto();
+        let result = new BlogsVm();
         result.init(data);
         return result;
     }
@@ -827,30 +965,21 @@ export class PaginatedListOfBlogItemBriefDto implements IPaginatedListOfBlogItem
             for (let item of this.items)
                 data["items"].push(item.toJSON());
         }
-        data["pageNumber"] = this.pageNumber;
-        data["totalPages"] = this.totalPages;
-        data["totalCount"] = this.totalCount;
-        data["hasPreviousPage"] = this.hasPreviousPage;
-        data["hasNextPage"] = this.hasNextPage;
         return data;
     }
 }
 
-export interface IPaginatedListOfBlogItemBriefDto {
-    items?: BlogItemBriefDto[];
-    pageNumber?: number;
-    totalPages?: number;
-    totalCount?: number;
-    hasPreviousPage?: boolean;
-    hasNextPage?: boolean;
+export interface IBlogsVm {
+    items?: BlogItemDto[];
 }
 
-export class BlogItemBriefDto implements IBlogItemBriefDto {
+export class BlogItemDto implements IBlogItemDto {
     id?: number;
     title?: string | undefined;
+    content?: string | undefined;
     isPublished?: boolean;
 
-    constructor(data?: IBlogItemBriefDto) {
+    constructor(data?: IBlogItemDto) {
         if (data) {
             for (var property in data) {
                 if (data.hasOwnProperty(property))
@@ -863,13 +992,14 @@ export class BlogItemBriefDto implements IBlogItemBriefDto {
         if (_data) {
             this.id = _data["id"];
             this.title = _data["title"];
+            this.content = _data["content"];
             this.isPublished = _data["isPublished"];
         }
     }
 
-    static fromJS(data: any): BlogItemBriefDto {
+    static fromJS(data: any): BlogItemDto {
         data = typeof data === 'object' ? data : {};
-        let result = new BlogItemBriefDto();
+        let result = new BlogItemDto();
         result.init(data);
         return result;
     }
@@ -878,14 +1008,16 @@ export class BlogItemBriefDto implements IBlogItemBriefDto {
         data = typeof data === 'object' ? data : {};
         data["id"] = this.id;
         data["title"] = this.title;
+        data["content"] = this.content;
         data["isPublished"] = this.isPublished;
         return data;
     }
 }
 
-export interface IBlogItemBriefDto {
+export interface IBlogItemDto {
     id?: number;
     title?: string | undefined;
+    content?: string | undefined;
     isPublished?: boolean;
 }
 
@@ -927,6 +1059,54 @@ export class CreateBlogItemCommand implements ICreateBlogItemCommand {
 export interface ICreateBlogItemCommand {
     title?: string | undefined;
     content?: string | undefined;
+}
+
+export class UpdateBlogItemCommand implements IUpdateBlogItemCommand {
+    id?: number;
+    title?: string | undefined;
+    content?: string | undefined;
+    isPublished?: boolean;
+
+    constructor(data?: IUpdateBlogItemCommand) {
+        if (data) {
+            for (var property in data) {
+                if (data.hasOwnProperty(property))
+                    (<any>this)[property] = (<any>data)[property];
+            }
+        }
+    }
+
+    init(_data?: any) {
+        if (_data) {
+            this.id = _data["id"];
+            this.title = _data["title"];
+            this.content = _data["content"];
+            this.isPublished = _data["isPublished"];
+        }
+    }
+
+    static fromJS(data: any): UpdateBlogItemCommand {
+        data = typeof data === 'object' ? data : {};
+        let result = new UpdateBlogItemCommand();
+        result.init(data);
+        return result;
+    }
+
+    toJSON(data?: any) {
+        data = typeof data === 'object' ? data : {};
+        data["id"] = this.id;
+        data["title"] = this.title;
+        data["content"] = this.content;
+        data["isPublished"] = this.isPublished;
+        return data;
+    }
+}
+
+export interface IUpdateBlogItemCommand {
+    id?: number;
+    title?: string | undefined;
+    content?: string | undefined;
+    isPublished?: boolean;
 }
 
 export class PaginatedListOfTodoItemBriefDto implements IPaginatedListOfTodoItemBriefDto {
